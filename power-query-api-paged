@@ -1,0 +1,34 @@
+let 
+    GetJson = (Body) =>
+        let 
+            Url = "YOU_API_URL",
+            Headers = [
+                #"accept" = "application/json",
+                #"Content-Type" = "application/json;charset=utf-8",
+                #"Cache-Control" = "no-cache, no-store, must-revalidate"
+            ],
+            Response = Json.Document(Web.Contents(Url, [
+                Headers = Headers,
+                Content = Text.ToBinary(Body)
+            ]))
+        in Response,
+
+    GetPage = (NumberPage) =>
+        let 
+            Body = "{
+                ""params"": [{YOU_PARAMS}],
+                ""page"": " & Number.ToText(NumberPage, "D", "") & "
+            }",
+            Response = GetJson(Body)
+        in Response,
+
+    Page = List.Generate(() =>
+        [ i = 1, Response = GetPage(i), Items = List.Count(Response[data]) ],
+        each [i] <= [Items],
+        each [ i = [i] + 1, Response = GetPage(i), Items = if List.Count(Response[data]) = true then List.Count(Response[data]) else [Items] ],
+        each [Response][data]
+    ),
+    List = List.Union(Page),
+    Table = Table.FromList(List, Splitter.SplitByNothing(), null, null, ExtraValues.Error)
+in
+    Table
